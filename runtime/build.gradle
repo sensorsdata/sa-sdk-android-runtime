@@ -1,0 +1,168 @@
+import org.aspectj.bridge.MessageHandler
+import org.aspectj.tools.ajc.Main
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.1.0'
+        classpath 'org.aspectj:aspectjtools:1.8.10'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
+
+version = "1.0.0"
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    resourcePrefix "sensors_analytics_"
+
+    defaultConfig {
+        minSdkVersion 9
+        consumerProguardFiles 'consumer-proguard-rules.pro'
+    }
+}
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    provided deps.aspectjRuntime
+    compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK2:1.8.0'
+}
+
+def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android-runtime'
+def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android-runtime.git'
+group = "com.sensorsdata.analytics.android"
+project.archivesBaseName = "SensorsAnalyticsSDK-Runtime"
+
+install {
+    repositories.mavenInstaller {
+        // generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'aar'
+                name 'The official Android SDK Runtime for Sensors Analytics.'
+                url siteUrl
+                // Set your license
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'zouyuhan'
+                        name 'Yuhan ZOU'
+                        email 'zouyuhan@sensorsdata.cn'
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+javadoc {
+    options {
+        encoding "UTF-8"
+        charSet 'UTF-8'
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task makeJar(type: Copy) {
+    def jarName = 'SensorsAnalytics-Android-SDK-Runtime-Release-' + version + '.jar';
+    delete 'build/libs/' + jarName
+    from('build/intermediates/bundles/release/')
+    into('build/libs/')
+    include('classes.jar')
+    rename('classes.jar', jarName)
+}
+
+makeJar.dependsOn(build)
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    configurations = ['archives']
+    pkg {
+        repo = "maven"
+        name = "SensorsAnalyticsSDK-Runtime"
+        desc = 'The official Android SDK Runtime for Sensors Analytics.'
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = ["Apache-2.0"]
+        labels = ['android']
+        publish = true
+        publicDownloadNumbers = true
+    }
+}
+
+android.libraryVariants.all { variant ->
+    JavaCompile javaCompile = variant.javaCompile
+    javaCompile.doLast {
+        String[] args = [
+                "-showWeaveInfo",
+                "-1.7",
+                "-inpath", javaCompile.destinationDir.toString(),
+                "-aspectpath", javaCompile.classpath.asPath,
+                "-d", javaCompile.destinationDir.toString(),
+                "-classpath", javaCompile.classpath.asPath,
+                "-bootclasspath", project.android.bootClasspath.join(File.pathSeparator)
+        ]
+
+        new Main().run(args, new MessageHandler(true));
+        println("----------------------------------------------")
+        println("---------SensorsAnalytics-runtime Weave------------")
+        println("----------------------------------------------")
+    }
+}
