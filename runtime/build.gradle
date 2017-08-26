@@ -27,7 +27,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "1.0.1"
+version = "1.0.2"
 
 android {
     compileSdkVersion 23
@@ -48,9 +48,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:23.1.1'
     provided deps.aspectjRuntime
-    compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.8.+'
 }
 
 def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android-runtime'
