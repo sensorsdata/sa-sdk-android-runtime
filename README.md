@@ -1,3 +1,4 @@
+# 不再维护
 # Sensors Analytics
 
 This is the official Android SDK for Sensors Analytics.
